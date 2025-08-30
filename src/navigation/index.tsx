@@ -7,8 +7,7 @@ import { useAppContext } from '../context/AppContext';
 import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
-import UserDashboard from '../screens/UserDashboard';
-import OrganizationDashboard from '../screens/OrganizationDashboard';
+import BottomTabNavigator from './BottomTabNavigator';
 
 const Stack = createStackNavigator();
 
@@ -39,14 +38,8 @@ export const Navigation = () => {
             <Stack.Screen name="Signup" component={SignupScreen} />
           </>
         ) : (
-          // App screens based on user role
-          <>
-            {state.user?.role === 'organization' ? (
-              <Stack.Screen name="OrganizationDashboard" component={OrganizationDashboard} />
-            ) : (
-              <Stack.Screen name="UserDashboard" component={UserDashboard} />
-            )}
-          </>
+          // Main app with bottom tab navigation
+          <Stack.Screen name="MainApp" component={BottomTabNavigator} />
         )}
       </Stack.Navigator>
     </NavigationContainer>
