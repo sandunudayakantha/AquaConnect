@@ -13,13 +13,10 @@ import ProfileScreen from '../screens/ProfileScreen';
 const Tab = createBottomTabNavigator();
 
 // Custom tab bar icon component
-const TabBarIcon = ({ icon, label, focused }: { icon: string; label: string; focused: boolean }) => (
+const TabBarIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
   <View style={styles.tabBarItem}>
     <Text style={[styles.tabBarIcon, focused && styles.tabBarIconFocused]}>
       {icon}
-    </Text>
-    <Text style={[styles.tabBarLabel, focused && styles.tabBarLabelFocused]}>
-      {label}
     </Text>
   </View>
 );
@@ -40,7 +37,7 @@ const BottomTabNavigator: React.FC = () => {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="🏠" label="Home" focused={focused} />
+            <TabBarIcon icon="🏠" focused={focused} />
           ),
         }}
       />
@@ -49,7 +46,7 @@ const BottomTabNavigator: React.FC = () => {
         component={ExploreScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="🔍" label="Explore" focused={focused} />
+            <TabBarIcon icon="🔍" focused={focused} />
           ),
         }}
       />
@@ -64,9 +61,6 @@ const BottomTabNavigator: React.FC = () => {
                   📝
                 </Text>
               </View>
-              <Text style={[styles.centerTabLabel, focused && styles.centerTabLabelFocused]}>
-                Report
-              </Text>
             </View>
           ),
         }}
@@ -76,7 +70,7 @@ const BottomTabNavigator: React.FC = () => {
         component={TipsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="💡" label="Tips" focused={focused} />
+            <TabBarIcon icon="💡" focused={focused} />
           ),
         }}
       />
@@ -85,7 +79,7 @@ const BottomTabNavigator: React.FC = () => {
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="👤" label="Profile" focused={focused} />
+            <TabBarIcon icon="👤" focused={focused} />
           ),
         }}
       />
@@ -98,9 +92,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
-    paddingTop: 8,
-    paddingBottom: 8,
-    height: 80,
+    paddingTop: 12,
+    paddingBottom: 12,
+    height: 60,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: {
@@ -115,18 +109,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabBarIcon: {
-    fontSize: 24,
-    marginBottom: 4,
+    fontSize: 28,
   },
   tabBarIconFocused: {
     transform: [{ scale: 1.1 }],
-  },
-  tabBarLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  tabBarLabelFocused: {
-    fontWeight: '600',
   },
   centerTab: {
     alignItems: 'center',
@@ -160,15 +146,6 @@ const styles = StyleSheet.create({
   },
   centerTabIconFocused: {
     transform: [{ scale: 1.1 }],
-  },
-  centerTabLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: theme.colors.textSecondary,
-  },
-  centerTabLabelFocused: {
-    color: theme.colors.primary,
-    fontWeight: '600',
   },
 });
 
