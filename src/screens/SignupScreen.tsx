@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { theme } from '../styles/theme';
 import { useAppContext } from '../context/AppContext';
-import { testFirebaseConnection } from '../services/firebaseTest';
 
 interface SignupScreenProps {
   navigation: any;
@@ -158,22 +157,6 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
           </View>
 
           <TouchableOpacity
-            style={[styles.testButton]}
-            onPress={async () => {
-              console.log('🧪 Testing Firebase connection...');
-              const result = await testFirebaseConnection();
-              Alert.alert(
-                'Firebase Test',
-                result ? '✅ All tests passed! Firebase is working correctly.' : '❌ Firebase test failed. Check console for details.'
-              );
-            }}
-          >
-            <Text style={styles.testButtonText}>
-              🧪 Test Firebase Connection
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
             style={[styles.button, state.isLoading && styles.buttonDisabled]}
             onPress={handleSignup}
             disabled={state.isLoading}
@@ -282,19 +265,7 @@ const styles = StyleSheet.create({
   roleButtonSubtextActive: {
     color: theme.colors.primary,
   },
-  testButton: {
-    backgroundColor: theme.colors.secondary,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    alignItems: 'center',
-    marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-  },
-  testButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+
   button: {
     backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.md,
