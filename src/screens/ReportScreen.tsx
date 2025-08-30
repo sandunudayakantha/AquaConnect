@@ -10,12 +10,17 @@ import {
 } from 'react-native';
 import { theme } from '../styles/theme';
 import { useAppContext } from '../context/AppContext';
+import MapPicker from '../components/MapPicker';
 
 const ReportScreen: React.FC = () => {
   const { state } = useAppContext();
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+  } | null>(null);
   const [priority, setPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
 
   const categories = [
@@ -63,6 +68,14 @@ const ReportScreen: React.FC = () => {
     { value: 'High', label: 'High', color: theme.colors.error },
   ];
 
+  const handleLocationSelect = (selectedLocation: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  }) => {
+    setLocation(selectedLocation);
+  };
+
   const handleSubmit = () => {
     if (!selectedCategory) {
       Alert.alert('Error', 'Please select a category');
@@ -72,15 +85,15 @@ const ReportScreen: React.FC = () => {
       Alert.alert('Error', 'Please provide a description');
       return;
     }
-    if (!location.trim()) {
-      Alert.alert('Error', 'Please provide a location');
+    if (!location) {
+      Alert.alert('Error', 'Please select a location on the map');
       return;
     }
 
     // Here you would typically submit to your backend
     Alert.alert(
       'Report Submitted',
-      'Your report has been submitted successfully. We will review it and take appropriate action.',
+      `Your report has been submitted successfully!\n\nLocation: ${location.address}\nCoordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}\n\nWe will review it and take appropriate action.`,
       [
         {
           text: 'OK',
@@ -88,7 +101,7 @@ const ReportScreen: React.FC = () => {
             // Reset form
             setSelectedCategory('');
             setDescription('');
-            setLocation('');
+            setLocation(null);
             setPriority('Medium');
           },
         },
@@ -160,15 +173,12 @@ const ReportScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Location Input */}
+      {/* Location Selection */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Location</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter the location or address"
-          value={location}
-          onChangeText={setLocation}
-          placeholderTextColor={theme.colors.textSecondary}
+        <MapPicker
+          onLocationSelect={handleLocationSelect}
+          initialLocation={location || undefined}
         />
       </View>
 
