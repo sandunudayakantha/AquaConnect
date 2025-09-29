@@ -7,10 +7,14 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { theme } from '../styles/theme';
 import { useAppContext } from '../context/AppContext';
 import MapPicker from '../components/MapPicker';
+import reportService from '../services/reportService';
 
 const ReportScreen: React.FC = () => {
   const { state } = useAppContext();
@@ -22,6 +26,8 @@ const ReportScreen: React.FC = () => {
     address: string;
   } | null>(null);
   const [priority, setPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = [
     {
@@ -76,7 +82,40 @@ const ReportScreen: React.FC = () => {
     setLocation(selectedLocation);
   };
 
-  const handleSubmit = () => {
+  const handlePhotoUpload = async () => {
+    try {
+      // Request permission
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+        aspect: [4, 3],
+      });
+
+      if (!result.canceled && result.assets) {
+        const newPhotos = result.assets.map(asset => asset.uri);
+        setPhotos(prev => [...prev, ...newPhotos].slice(0, 5)); // Limit to 5 photos
+      }
+    } catch (error) {
+      console.error('Error picking images:', error);
+      Alert.alert('Error', 'Failed to select images');
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async () => {
+    // Validation
     if (!selectedCategory) {
       Alert.alert('Error', 'Please select a category');
       return;
@@ -89,24 +128,85 @@ const ReportScreen: React.FC = () => {
       Alert.alert('Error', 'Please select a location on the map');
       return;
     }
+    if (!state.user) {
+      Alert.alert('Error', 'You must be logged in to submit a report');
+      return;
+    }
 
-    // Here you would typically submit to your backend
-    Alert.alert(
-      'Report Submitted',
-      `Your report has been submitted successfully!\n\nLocation: ${location.address}\nCoordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}\n\nWe will review it and take appropriate action.`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            // Reset form
-            setSelectedCategory('');
-            setDescription('');
-            setLocation(null);
-            setPriority('Medium');
+    setIsSubmitting(true);
+
+    try {
+      // Prepare report data
+      const reportData = {
+        category: selectedCategory,
+        description: description.trim(),
+        priority,
+        location,
+        userId: state.user.uid,
+        userEmail: state.user.email,
+        userName: state.user.name,
+      };
+
+      // Submit report with photos to Firestore and Cloudinary
+      const result = await reportService.submitReportWithPhotos(reportData, photos);
+      const { reportId, photoUrls } = result;
+      
+      console.log(`✅ Report submission complete - ID: ${reportId}, Photos: ${photoUrls.length}`);
+
+      // Check if photos were uploaded successfully
+      if (photos.length > 0 && photoUrls.length === 0) {
+        // Photos were attempted but failed
+        Alert.alert(
+          'Report Submitted ⚠️',
+          `Your report was submitted successfully, but we couldn't upload the photos to Cloudinary.\n\nReport ID: ${reportId}\n\nYou can try uploading photos again later or contact support if the issue persists.`,
+          [{ text: 'OK' }]
+        );
+        
+        // Reset form and return early
+        setSelectedCategory('');
+        setDescription('');
+        setLocation(null);
+        setPriority('Medium');
+        setPhotos([]);
+        return;
+      }
+
+      // Success message
+      const photoMessage = photoUrls.length > 0 
+        ? `\n\n📷 ${photoUrls.length} photo${photoUrls.length > 1 ? 's' : ''} uploaded successfully`
+        : photos.length > 0 
+          ? '\n\n⚠️ Photos could not be uploaded'
+          : '';
+      
+      Alert.alert(
+        'Report Submitted Successfully! 🎉',
+        `Thank you for helping improve water quality in your community!\n\nReport ID: ${reportId}\nLocation: ${location.address}${photoMessage}\n\nWe will review your report and take appropriate action.`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Reset form
+              setSelectedCategory('');
+              setDescription('');
+              setLocation(null);
+              setPriority('Medium');
+              setPhotos([]);
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    } catch (error) {
+      console.error('❌ Error submitting report:', error);
+      Alert.alert(
+        'Submission Failed',
+        `Sorry, we couldn't submit your report right now. Please check your internet connection and try again.\n\nError: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        [
+          { text: 'OK' }
+        ]
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -197,20 +297,56 @@ const ReportScreen: React.FC = () => {
         />
       </View>
 
-      {/* Photo Upload (Placeholder) */}
+      {/* Photo Upload */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Add Photos (Optional)</Text>
-        <TouchableOpacity style={styles.photoUpload}>
+        
+        {photos.length > 0 && (
+          <ScrollView horizontal style={styles.photoPreviewContainer} showsHorizontalScrollIndicator={false}>
+            {photos.map((photo, index) => (
+              <View key={index} style={styles.photoPreviewItem}>
+                <Image source={{ uri: photo }} style={styles.photoPreview} />
+                <TouchableOpacity
+                  style={styles.removePhotoButton}
+                  onPress={() => handleRemovePhoto(index)}
+                >
+                  <Text style={styles.removePhotoText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+
+        <TouchableOpacity 
+          style={styles.photoUpload} 
+          onPress={handlePhotoUpload}
+          disabled={photos.length >= 5}
+        >
           <Text style={styles.photoUploadIcon}>📷</Text>
-          <Text style={styles.photoUploadText}>Tap to add photos</Text>
-          <Text style={styles.photoUploadSubtext}>Help us understand the issue better</Text>
+          <Text style={styles.photoUploadText}>
+            {photos.length > 0 ? `${photos.length}/5 photos selected` : 'Tap to add photos'}
+          </Text>
+          <Text style={styles.photoUploadSubtext}>
+            Help us understand the issue better {photos.length >= 5 && '(Maximum reached)'}
+          </Text>
         </TouchableOpacity>
       </View>
 
       {/* Submit Button */}
       <View style={styles.section}>
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitButtonText}>Submit Report</Text>
+        <TouchableOpacity 
+          style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} 
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <View style={styles.submitButtonLoading}>
+              <ActivityIndicator color="white" size="small" />
+              <Text style={[styles.submitButtonText, { marginLeft: 8 }]}>Submitting...</Text>
+            </View>
+          ) : (
+            <Text style={styles.submitButtonText}>Submit Report</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -367,6 +503,42 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: 'white',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  submitButtonDisabled: {
+    backgroundColor: theme.colors.textSecondary,
+    opacity: 0.7,
+  },
+  submitButtonLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  photoPreviewContainer: {
+    marginBottom: theme.spacing.md,
+  },
+  photoPreviewItem: {
+    position: 'relative',
+    marginRight: theme.spacing.md,
+  },
+  photoPreview: {
+    width: 80,
+    height: 80,
+    borderRadius: theme.borderRadius.md,
+  },
+  removePhotoButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: theme.colors.error,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removePhotoText: {
+    color: 'white',
+    fontSize: 12,
     fontWeight: 'bold',
   },
   tipsCard: {
