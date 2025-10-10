@@ -177,6 +177,65 @@ class ReportService {
   }
 
   /**
+   * Update report status (for organizations)
+   */
+  async updateReportStatus(
+    reportId: string, 
+    status: 'pending' | 'in_progress' | 'resolved' | 'rejected',
+    adminNotes?: string
+  ): Promise<void> {
+    try {
+      if (!db) {
+        throw new Error('Firebase not initialized. Please check your configuration.');
+      }
+
+      console.log(`📝 Updating report ${reportId} status to: ${status}`);
+
+      const reportRef = doc(db, this.reportsCollection, reportId);
+      const updateData: any = {
+        status,
+        updatedAt: Timestamp.fromDate(new Date()),
+      };
+
+      if (adminNotes) {
+        updateData.adminNotes = adminNotes;
+      }
+
+      await updateDoc(reportRef, updateData);
+
+      console.log('✅ Report status updated successfully');
+    } catch (error) {
+      console.error('❌ Error updating report status:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to update report status');
+    }
+  }
+
+  /**
+   * Assign report to organization user
+   */
+  async assignReport(reportId: string, assignedTo: string): Promise<void> {
+    try {
+      if (!db) {
+        throw new Error('Firebase not initialized. Please check your configuration.');
+      }
+
+      console.log(`👤 Assigning report ${reportId} to: ${assignedTo}`);
+
+      const reportRef = doc(db, this.reportsCollection, reportId);
+      await updateDoc(reportRef, {
+        assignedTo,
+        status: 'in_progress',
+        updatedAt: Timestamp.fromDate(new Date()),
+      });
+
+      console.log('✅ Report assigned successfully');
+    } catch (error) {
+      console.error('❌ Error assigning report:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to assign report');
+    }
+  }
+
+  /**
    * Get a single report by ID with photos
    */
   async getReportById(reportId: string): Promise<ReportData | null> {
