@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,22 +6,56 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { theme } from '../styles/theme';
+import tipsService, { TipData } from '../services/tipsService';
 
 const TipsScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [tips, setTips] = useState<TipData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const categories = [
     { id: 'all', title: 'All Tips', icon: '📚' },
     { id: 'conservation', title: 'Conservation', icon: '💧' },
     { id: 'quality', title: 'Quality', icon: '🚰' },
-    { id: 'safety', title: 'Safety', icon: '🛡️' },
+    { id: 'safety', title: 'Safety', icon: '⚠️' },
     { id: 'maintenance', title: 'Maintenance', icon: '🔧' },
+    { id: 'general', title: 'General', icon: '💡' },
   ];
 
-  const tips = [
+  // Fetch tips from database
+  useEffect(() => {
+    fetchTips();
+  }, []);
+
+  const fetchTips = async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const publishedTips = await tipsService.getPublishedTips();
+      setTips(publishedTips);
+      console.log(`💡 Loaded ${publishedTips.length} published tips`);
+    } catch (error) {
+      console.error('Error fetching tips:', error);
+      // Fallback to empty array if fetch fails
+      setTips([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Old static tips for reference (can be removed)
+  const staticTips = [
     {
       id: 1,
       title: 'Fix Leaky Faucets',
@@ -107,9 +141,19 @@ const TipsScreen: React.FC = () => {
   const filteredTips = tips.filter(tip => {
     const matchesCategory = selectedCategory === 'all' || tip.category === selectedCategory;
     const matchesSearch = tip.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         tip.description.toLowerCase().includes(searchQuery.toLowerCase());
+                         tip.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         tip.content.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>Loading tips...</Text>
+      </View>
+    );
+  }
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -125,11 +169,24 @@ const TipsScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => fetchTips(true)}
+          colors={[theme.colors.primary]}
+        />
+      }
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Water Tips</Text>
-        <Text style={styles.subtitle}>Learn how to conserve and improve water quality</Text>
+        <Text style={styles.subtitle}>
+          {tips.length > 0 
+            ? `${tips.length} tips available • Pull to refresh` 
+            : 'Learn how to conserve and improve water quality'}
+        </Text>
       </View>
 
       {/* Search Bar */}
@@ -176,33 +233,46 @@ const TipsScreen: React.FC = () => {
         <Text style={styles.sectionTitle}>
           {filteredTips.length} Tip{filteredTips.length !== 1 ? 's' : ''} Found
         </Text>
-        {filteredTips.map((tip) => (
-          <TouchableOpacity key={tip.id} style={styles.tipCard}>
-            <View style={styles.tipHeader}>
-              <Text style={styles.tipIcon}>{tip.icon}</Text>
-              <View style={styles.tipInfo}>
-                <Text style={styles.tipTitle}>{tip.title}</Text>
-                <View style={styles.tipMeta}>
-                  <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(tip.difficulty) + '20' }]}>
-                    <Text style={[styles.difficultyText, { color: getDifficultyColor(tip.difficulty) }]}>
-                      {tip.difficulty}
-                    </Text>
+        {filteredTips.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>💡</Text>
+            <Text style={styles.emptyText}>No tips found</Text>
+            <Text style={styles.emptySubtext}>
+              {searchQuery || selectedCategory !== 'all' 
+                ? 'Try adjusting your search or filters'
+                : 'Organization admins can add tips from their dashboard'}
+            </Text>
+          </View>
+        ) : (
+          filteredTips.map((tip) => (
+            <TouchableOpacity key={tip.id} style={styles.tipCard}>
+              <View style={styles.tipHeader}>
+                <Text style={styles.tipIcon}>{tip.icon}</Text>
+                <View style={styles.tipInfo}>
+                  <Text style={styles.tipTitle}>{tip.title}</Text>
+                  <View style={styles.tipMeta}>
+                    <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary + '20' }]}>
+                      <Text style={[styles.categoryBadgeText, { color: theme.colors.primary }]}>
+                        {tip.category.toUpperCase()}
+                      </Text>
+                    </View>
+                    {tip.views !== undefined && tip.views > 0 && (
+                      <Text style={styles.viewsText}>👁️ {tip.views}</Text>
+                    )}
                   </View>
-                  <Text style={styles.timeText}>⏱️ {tip.timeRequired}</Text>
                 </View>
               </View>
-            </View>
-            <Text style={styles.tipDescription}>{tip.description}</Text>
-            <View style={styles.tipFooter}>
-              <View style={styles.savingsBadge}>
-                <Text style={styles.savingsText}>💾 {tip.savings}</Text>
+              <Text style={styles.tipDescription}>{tip.description}</Text>
+              <Text style={styles.tipContent} numberOfLines={3}>{tip.content}</Text>
+              <View style={styles.tipFooter}>
+                <Text style={styles.authorText}>By {tip.createdByName}</Text>
+                <Text style={styles.dateText}>
+                  {new Date(tip.createdAt).toLocaleDateString()}
+                </Text>
               </View>
-              <TouchableOpacity style={styles.learnMoreButton}>
-                <Text style={styles.learnMoreText}>Learn More</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
       </View>
 
       {/* Quick Stats */}
@@ -233,6 +303,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+  },
+  loadingText: {
+    marginTop: theme.spacing.md,
+    fontSize: 16,
+    color: theme.colors.textSecondary,
   },
   header: {
     padding: theme.spacing.xl,
@@ -340,18 +421,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: theme.spacing.md,
   },
-  difficultyBadge: {
+  categoryBadge: {
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: theme.spacing.xs,
     borderRadius: theme.borderRadius.sm,
   },
-  difficultyText: {
+  categoryBadgeText: {
     fontSize: 12,
     fontWeight: '600',
   },
-  timeText: {
+  viewsText: {
     fontSize: 12,
     color: theme.colors.textSecondary,
+  },
+  tipContent: {
+    fontSize: 14,
+    color: theme.colors.text,
+    lineHeight: 20,
+    marginTop: theme.spacing.sm,
+  },
+  authorText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  },
+  dateText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xxl,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: theme.spacing.md,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   tipDescription: {
     fontSize: 14,
