@@ -8,9 +8,14 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Dimensions,
 } from 'react-native';
+import MapView, { Marker, MapPressEvent } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { theme } from '../styles/theme';
+import { useLanguage } from '../context/LanguageContext';
+
+const { width, height } = Dimensions.get('window');
 
 interface MapPickerProps {
   onLocationSelect: (location: {
@@ -25,6 +30,7 @@ interface MapPickerProps {
 }
 
 const MapPicker: React.FC<MapPickerProps> = ({ onLocationSelect, initialLocation }) => {
+  const { t } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
   const [location, setLocation] = useState<{
     latitude: number;
@@ -131,6 +137,22 @@ const MapPicker: React.FC<MapPickerProps> = ({ onLocationSelect, initialLocation
     }
   };
 
+  const handleMapPress = async (event: MapPressEvent) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    const address = await getAddressFromCoordinates(latitude, longitude);
+    setLocation({ latitude, longitude, address });
+    setManualLatitude(latitude.toFixed(6));
+    setManualLongitude(longitude.toFixed(6));
+  };
+
+  const handleMarkerDragEnd = async (event: any) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    const address = await getAddressFromCoordinates(latitude, longitude);
+    setLocation({ latitude, longitude, address });
+    setManualLatitude(latitude.toFixed(6));
+    setManualLongitude(longitude.toFixed(6));
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -140,10 +162,10 @@ const MapPicker: React.FC<MapPickerProps> = ({ onLocationSelect, initialLocation
         <Text style={styles.mapButtonIcon}>🗺️</Text>
         <View style={styles.mapButtonContent}>
           <Text style={styles.mapButtonTitle}>
-            {location ? 'Location Selected' : 'Select Location'}
+            {location ? t('locationSelected') : t('selectLocation')}
           </Text>
           <Text style={styles.mapButtonSubtitle}>
-            {location ? location.address : 'Tap to select location'}
+            {location ? location.address : t('tapToSelectLocation')}
           </Text>
         </View>
         <Text style={styles.mapButtonArrow}>›</Text>
@@ -163,37 +185,74 @@ const MapPicker: React.FC<MapPickerProps> = ({ onLocationSelect, initialLocation
             >
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Select Location</Text>
+            <Text style={styles.modalTitle}>{t('selectLocation')}</Text>
             <TouchableOpacity
               style={styles.confirmButton}
               onPress={handleConfirmLocation}
               disabled={!location}
             >
               <Text style={[styles.confirmButtonText, !location && styles.confirmButtonTextDisabled]}>
-                Confirm
+                {t('confirm')}
               </Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.modalContent}>
+            {/* Interactive Map */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🗺️ {t('tapOnMapToSelectLocation')}</Text>
+              <View style={styles.mapViewContainer}>
+                <MapView
+                  style={styles.mapView}
+                  initialRegion={{
+                    latitude: initialLocation?.latitude || userLocation?.latitude || 37.7749,
+                    longitude: initialLocation?.longitude || userLocation?.longitude || -122.4194,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  }}
+                  onPress={handleMapPress}
+                  showsUserLocation={true}
+                  showsMyLocationButton={true}
+                >
+                  {location && (
+                    <Marker
+                      coordinate={{
+                        latitude: location.latitude,
+                        longitude: location.longitude,
+                      }}
+                      title={t('selectedLocation')}
+                      description={location.address}
+                      draggable
+                      onDragEnd={handleMarkerDragEnd}
+                    />
+                  )}
+                </MapView>
+                <View style={styles.mapInstructions}>
+                  <Text style={styles.mapInstructionsText}>
+                    👆 {t('tapAnywhereOrDragMarker')}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
             {/* Current Location Option */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📍 Use Current Location</Text>
+              <Text style={styles.sectionTitle}>📍 {t('quickActions')}</Text>
               <TouchableOpacity
                 style={styles.currentLocationButton}
                 onPress={handleUseCurrentLocation}
               >
                 <Text style={styles.currentLocationIcon}>📍</Text>
-                <Text style={styles.currentLocationText}>Get My Current Location</Text>
+                <Text style={styles.currentLocationText}>{t('getMyCurrentLocation')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Manual Coordinates Option */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📝 Enter Coordinates Manually</Text>
+              <Text style={styles.sectionTitle}>📝 {t('enterCoordinatesManually')}</Text>
               <View style={styles.coordinateInputs}>
                 <View style={styles.coordinateInput}>
-                  <Text style={styles.coordinateLabel}>Latitude</Text>
+                  <Text style={styles.coordinateLabel}>{t('latitude')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="e.g., 37.7749"
@@ -204,7 +263,7 @@ const MapPicker: React.FC<MapPickerProps> = ({ onLocationSelect, initialLocation
                   />
                 </View>
                 <View style={styles.coordinateInput}>
-                  <Text style={styles.coordinateLabel}>Longitude</Text>
+                  <Text style={styles.coordinateLabel}>{t('longitude')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="e.g., -122.4194"
@@ -219,18 +278,18 @@ const MapPicker: React.FC<MapPickerProps> = ({ onLocationSelect, initialLocation
                 style={styles.manualLocationButton}
                 onPress={handleManualLocation}
               >
-                <Text style={styles.manualLocationText}>Set Location from Coordinates</Text>
+                <Text style={styles.manualLocationText}>{t('setLocationFromCoordinates')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Selected Location Display */}
             {location && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>✅ Selected Location</Text>
+                <Text style={styles.sectionTitle}>✅ {t('selectedLocation')}</Text>
                 <View style={styles.locationInfo}>
-                  <Text style={styles.locationInfoTitle}>Address:</Text>
+                  <Text style={styles.locationInfoTitle}>{t('address')}:</Text>
                   <Text style={styles.locationInfoAddress}>{location.address}</Text>
-                  <Text style={styles.locationInfoTitle}>Coordinates:</Text>
+                  <Text style={styles.locationInfoTitle}>{t('coordinates')}:</Text>
                   <Text style={styles.locationInfoCoords}>
                     {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
                   </Text>
@@ -240,13 +299,13 @@ const MapPicker: React.FC<MapPickerProps> = ({ onLocationSelect, initialLocation
 
             {/* Instructions */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>💡 Instructions</Text>
+              <Text style={styles.sectionTitle}>💡 {t('instructions')}</Text>
               <Text style={styles.instructionsText}>
-                • Use "Get My Current Location" to automatically get your current position{'\n'}
-                • Or enter latitude and longitude coordinates manually{'\n'}
-                • Latitude ranges from -90 to 90{'\n'}
-                • Longitude ranges from -180 to 180{'\n'}
-                • The app will automatically get the address for the selected coordinates
+                • {t('useCurrentLocationInstruction')}{'\n'}
+                • {t('orEnterCoordinatesManually')}{'\n'}
+                • {t('latitudeRanges')}{'\n'}
+                • {t('longitudeRanges')}{'\n'}
+                • {t('autoGetAddress')}
               </Text>
             </View>
           </ScrollView>
@@ -349,6 +408,25 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
+  },
+  mapViewContainer: {
+    borderRadius: theme.borderRadius.md,
+    overflow: 'hidden',
+    backgroundColor: theme.colors.surface,
+  },
+  mapView: {
+    width: '100%',
+    height: 400,
+  },
+  mapInstructions: {
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.md,
+  },
+  mapInstructionsText: {
+    color: 'white',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '600',
   },
   currentLocationButton: {
     flexDirection: 'row',

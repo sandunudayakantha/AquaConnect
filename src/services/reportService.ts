@@ -280,10 +280,10 @@ class ReportService {
         throw new Error('Firebase not initialized. Please check your configuration.');
       }
 
+      // Simple query without orderBy to avoid index requirement
       const q = query(
         collection(db, this.reportsCollection),
         where('userId', '==', userId),
-        orderBy('createdAt', 'desc'),
         limit(limitCount)
       );
 
@@ -300,6 +300,9 @@ class ReportService {
           photos: data.photos || [], // Ensure photos array exists
         } as ReportData);
       });
+
+      // Sort client-side instead of using orderBy in query
+      reports.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
       return reports;
     } catch (error) {

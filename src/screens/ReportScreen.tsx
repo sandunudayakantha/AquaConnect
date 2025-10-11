@@ -13,11 +13,13 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { theme } from '../styles/theme';
 import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import MapPicker from '../components/MapPicker';
 import reportService from '../services/reportService';
 
 const ReportScreen: React.FC = () => {
   const { state } = useAppContext();
+  const { t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<{
@@ -32,46 +34,46 @@ const ReportScreen: React.FC = () => {
   const categories = [
     {
       id: 'water_quality',
-      title: 'Water Quality',
+      title: t('waterQuality'),
       icon: '🚰',
-      description: 'Report water quality issues',
+      description: t('reportWaterQualityIssues'),
     },
     {
       id: 'pressure',
-      title: 'Water Pressure',
+      title: t('waterPressure'),
       icon: '💧',
-      description: 'Report pressure problems',
+      description: t('reportPressureProblems'),
     },
     {
       id: 'infrastructure',
-      title: 'Infrastructure',
+      title: t('infrastructure'),
       icon: '🏗️',
-      description: 'Report infrastructure issues',
+      description: t('reportInfrastructureIssues'),
     },
     {
       id: 'leakage',
-      title: 'Leakage',
+      title: t('leakage'),
       icon: '💦',
-      description: 'Report water leaks',
+      description: t('reportWaterLeaks'),
     },
     {
       id: 'contamination',
-      title: 'Contamination',
+      title: t('contamination'),
       icon: '⚠️',
-      description: 'Report contamination concerns',
+      description: t('reportContaminationConcerns'),
     },
     {
       id: 'other',
-      title: 'Other',
+      title: t('other'),
       icon: '📝',
-      description: 'Other water-related issues',
+      description: t('otherWaterIssues'),
     },
   ];
 
   const priorityOptions = [
-    { value: 'Low', label: 'Low', color: theme.colors.success },
-    { value: 'Medium', label: 'Medium', color: theme.colors.warning },
-    { value: 'High', label: 'High', color: theme.colors.error },
+    { value: 'Low', label: t('low'), color: theme.colors.success },
+    { value: 'Medium', label: t('medium'), color: theme.colors.warning },
+    { value: 'High', label: t('high'), color: theme.colors.error },
   ];
 
   const handleLocationSelect = (selectedLocation: {
@@ -213,13 +215,13 @@ const ReportScreen: React.FC = () => {
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Report Issue</Text>
-        <Text style={styles.subtitle}>Help improve water quality in your community</Text>
+        <Text style={styles.title}>{t('reportIssue')}</Text>
+        <Text style={styles.subtitle}>{t('helpImproveWaterQuality')}</Text>
       </View>
 
       {/* Category Selection */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Select Category</Text>
+        <Text style={styles.sectionTitle}>{t('selectCategory')}</Text>
         <View style={styles.categoriesGrid}>
           {categories.map((category) => (
             <TouchableOpacity
@@ -250,7 +252,7 @@ const ReportScreen: React.FC = () => {
 
       {/* Priority Selection */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Priority Level</Text>
+        <Text style={styles.sectionTitle}>{t('priorityLevel')}</Text>
         <View style={styles.priorityContainer}>
           {priorityOptions.map((option) => (
             <TouchableOpacity
@@ -275,7 +277,7 @@ const ReportScreen: React.FC = () => {
 
       {/* Location Selection */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Location</Text>
+        <Text style={styles.sectionTitle}>{t('location')}</Text>
         <MapPicker
           onLocationSelect={handleLocationSelect}
           initialLocation={location || undefined}
@@ -284,10 +286,10 @@ const ReportScreen: React.FC = () => {
 
       {/* Description Input */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Description</Text>
+        <Text style={styles.sectionTitle}>{t('description')}</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Describe the issue in detail..."
+          placeholder={t('describeIssueDetail')}
           value={description}
           onChangeText={setDescription}
           placeholderTextColor={theme.colors.textSecondary}
@@ -299,7 +301,7 @@ const ReportScreen: React.FC = () => {
 
       {/* Photo Upload */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Add Photos (Optional)</Text>
+        <Text style={styles.sectionTitle}>{t('addPhotos')} ({t('optional')})</Text>
         
         {photos.length > 0 && (
           <ScrollView horizontal style={styles.photoPreviewContainer} showsHorizontalScrollIndicator={false}>
@@ -324,10 +326,10 @@ const ReportScreen: React.FC = () => {
         >
           <Text style={styles.photoUploadIcon}>📷</Text>
           <Text style={styles.photoUploadText}>
-            {photos.length > 0 ? `${photos.length}/5 photos selected` : 'Tap to add photos'}
+            {photos.length > 0 ? `${photos.length}/5 ${t('photosSelected')}` : t('tapToAddPhotos')}
           </Text>
           <Text style={styles.photoUploadSubtext}>
-            Help us understand the issue better {photos.length >= 5 && '(Maximum reached)'}
+            {t('helpUsUnderstandIssue')} {photos.length >= 5 && `(${t('maximumReached')})`}
           </Text>
         </TouchableOpacity>
       </View>
@@ -342,10 +344,10 @@ const ReportScreen: React.FC = () => {
           {isSubmitting ? (
             <View style={styles.submitButtonLoading}>
               <ActivityIndicator color="white" size="small" />
-              <Text style={[styles.submitButtonText, { marginLeft: 8 }]}>Submitting...</Text>
+              <Text style={[styles.submitButtonText, { marginLeft: 8 }]}>{t('submitting')}</Text>
             </View>
           ) : (
-            <Text style={styles.submitButtonText}>Submit Report</Text>
+            <Text style={styles.submitButtonText}>{t('submitReport')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -353,12 +355,12 @@ const ReportScreen: React.FC = () => {
       {/* Tips */}
       <View style={styles.section}>
         <View style={styles.tipsCard}>
-          <Text style={styles.tipsTitle}>💡 Tips for Better Reports</Text>
+          <Text style={styles.tipsTitle}>💡 {t('tipsForBetterReports')}</Text>
           <Text style={styles.tipsText}>
-            • Be specific about the location{'\n'}
-            • Include relevant details{'\n'}
-            • Add photos if possible{'\n'}
-            • Report urgent issues immediately
+            • {t('beSpecificAboutLocation')}{'\n'}
+            • {t('includeRelevantDetails')}{'\n'}
+            • {t('addPhotosIfPossible')}{'\n'}
+            • {t('reportUrgentIssues')}
           </Text>
         </View>
       </View>

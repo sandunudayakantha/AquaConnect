@@ -10,9 +10,12 @@ import {
   RefreshControl,
 } from 'react-native';
 import { theme } from '../styles/theme';
+import { useLanguage } from '../context/LanguageContext';
 import tipsService, { TipData } from '../services/tipsService';
+import { getCategoryTranslationKey } from '../utils/translationHelpers';
 
 const TipsScreen: React.FC = () => {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [tips, setTips] = useState<TipData[]>([]);
@@ -20,12 +23,12 @@ const TipsScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const categories = [
-    { id: 'all', title: 'All Tips', icon: '📚' },
-    { id: 'conservation', title: 'Conservation', icon: '💧' },
-    { id: 'quality', title: 'Quality', icon: '🚰' },
-    { id: 'safety', title: 'Safety', icon: '⚠️' },
-    { id: 'maintenance', title: 'Maintenance', icon: '🔧' },
-    { id: 'general', title: 'General', icon: '💡' },
+    { id: 'all', title: t('allTips'), icon: '📚' },
+    { id: 'conservation', title: t('conservation'), icon: '💧' },
+    { id: 'quality', title: t('quality'), icon: '🚰' },
+    { id: 'safety', title: t('safety'), icon: '⚠️' },
+    { id: 'maintenance', title: t('maintenance'), icon: '🔧' },
+    { id: 'general', title: t('general'), icon: '💡' },
   ];
 
   // Fetch tips from database
@@ -150,7 +153,7 @@ const TipsScreen: React.FC = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading tips...</Text>
+        <Text style={styles.loadingText}>{t('loadingTips')}</Text>
       </View>
     );
   }
@@ -181,11 +184,11 @@ const TipsScreen: React.FC = () => {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Water Tips</Text>
+        <Text style={styles.title}>{t('waterTips')}</Text>
         <Text style={styles.subtitle}>
           {tips.length > 0 
-            ? `${tips.length} tips available • Pull to refresh` 
-            : 'Learn how to conserve and improve water quality'}
+            ? `${tips.length} ${t('tipsAvailable')} • ${t('refresh')}` 
+            : t('learnWaterConservation')}
         </Text>
       </View>
 
@@ -193,7 +196,7 @@ const TipsScreen: React.FC = () => {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search for tips..."
+          placeholder={t('searchForTips')}
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor={theme.colors.textSecondary}
@@ -205,7 +208,7 @@ const TipsScreen: React.FC = () => {
 
       {/* Categories */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Categories</Text>
+        <Text style={styles.sectionTitle}>{t('categories')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
           {categories.map((category) => (
             <TouchableOpacity
@@ -231,16 +234,16 @@ const TipsScreen: React.FC = () => {
       {/* Tips List */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
-          {filteredTips.length} Tip{filteredTips.length !== 1 ? 's' : ''} Found
+          {filteredTips.length} {filteredTips.length === 1 ? t('tip') : t('tips')} {t('found')}
         </Text>
         {filteredTips.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>💡</Text>
-            <Text style={styles.emptyText}>No tips found</Text>
+            <Text style={styles.emptyText}>{t('noTipsFound')}</Text>
             <Text style={styles.emptySubtext}>
               {searchQuery || selectedCategory !== 'all' 
-                ? 'Try adjusting your search or filters'
-                : 'Organization admins can add tips from their dashboard'}
+                ? t('tryAdjustingSearch')
+                : t('organizationAdminsCanAddTips')}
             </Text>
           </View>
         ) : (
@@ -253,7 +256,7 @@ const TipsScreen: React.FC = () => {
                   <View style={styles.tipMeta}>
                     <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary + '20' }]}>
                       <Text style={[styles.categoryBadgeText, { color: theme.colors.primary }]}>
-                        {tip.category.toUpperCase()}
+                        {t(getCategoryTranslationKey(tip.category))}
                       </Text>
                     </View>
                     {tip.views !== undefined && tip.views > 0 && (
@@ -265,7 +268,7 @@ const TipsScreen: React.FC = () => {
               <Text style={styles.tipDescription}>{tip.description}</Text>
               <Text style={styles.tipContent} numberOfLines={3}>{tip.content}</Text>
               <View style={styles.tipFooter}>
-                <Text style={styles.authorText}>By {tip.createdByName}</Text>
+                <Text style={styles.authorText}>{t('by')} {tip.createdByName}</Text>
                 <Text style={styles.dateText}>
                   {new Date(tip.createdAt).toLocaleDateString()}
                 </Text>
@@ -278,19 +281,19 @@ const TipsScreen: React.FC = () => {
       {/* Quick Stats */}
       <View style={styles.section}>
         <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>💡 Did You Know?</Text>
+          <Text style={styles.statsTitle}>💡 {t('didYouKnow')}</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>2.5</Text>
-              <Text style={styles.statLabel}>Gallons saved per minute with low-flow showerhead</Text>
+              <Text style={styles.statLabel}>{t('gallonsSavedPerMinute')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>20</Text>
-              <Text style={styles.statLabel}>Gallons wasted daily by a dripping faucet</Text>
+              <Text style={styles.statLabel}>{t('gallonsWastedDaily')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>30%</Text>
-              <Text style={styles.statLabel}>Water saved by fixing household leaks</Text>
+              <Text style={styles.statLabel}>{t('waterSavedByFixingLeaks')}</Text>
             </View>
           </View>
         </View>
