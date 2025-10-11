@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { AppProvider, useAppContext } from './src/context/AppContext';
+import { LanguageProvider } from './src/context/LanguageContext';
 import { Navigation } from './src/navigation';
 import { theme } from './src/styles/theme';
 
@@ -35,8 +36,10 @@ const AppContent = () => {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <LanguageProvider>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </LanguageProvider>
   );
 }

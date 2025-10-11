@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   ActivityIndicator,
   RefreshControl,
   Alert,
@@ -13,10 +12,15 @@ import {
   Image,
   TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import reportService, { ReportData } from '../services/reportService';
 import TipsManagement from '../components/TipsManagement';
+import ProfileEditModal from '../components/ProfileEditModal';
+import SettingsModal from '../components/SettingsModal';
+import { getStatusTranslationKey, getCategoryTranslationKey, getPriorityTranslationKey } from '../utils/translationHelpers';
 
 interface OrganizationDashboardProps {
   navigation: any;
@@ -24,6 +28,7 @@ interface OrganizationDashboardProps {
 
 const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigation }) => {
   const { state, logout } = useAppContext();
+  const { t } = useLanguage();
   const { user } = state;
   
   // State management
@@ -36,6 +41,8 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
   const [modalVisible, setModalVisible] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [tipsModalVisible, setTipsModalVisible] = useState(false);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   // Fetch reports
   const fetchReports = async (isRefresh = false) => {
     try {
@@ -143,9 +150,9 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(hours / 24);
 
-    if (hours < 1) return 'Just now';
-    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+    if (hours < 1) return t('justNow');
+    if (hours < 24) return `${hours} ${hours === 1 ? t('hour') : t('hours')} ${t('ago')}`;
+    if (days < 7) return `${days} ${days === 1 ? t('day') : t('days')} ${t('ago')}`;
     return date.toLocaleDateString();
   };
 
@@ -168,32 +175,46 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Organization Dashboard</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.greeting}>{t('organizationDashboard')}</Text>
           <Text style={styles.userName}>{user?.name || 'Organization'}</Text>
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={styles.headerButton} 
+            onPress={() => setProfileModalVisible(true)}
+          >
+            <Text style={styles.headerButtonText}>✏️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.headerButton} 
+            onPress={() => setSettingsModalVisible(true)}
+          >
+            <Text style={styles.headerButtonText}>⚙️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+            <Text style={styles.logoutText}>{t('logout')}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Statistics */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{stats.total}</Text>
-          <Text style={styles.statLabel}>Total</Text>
+          <Text style={styles.statLabel}>{t('total')}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={[styles.statNumber, { color: theme.colors.warning }]}>{stats.pending}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+          <Text style={styles.statLabel}>{t('pending')}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={[styles.statNumber, { color: theme.colors.primary }]}>{stats.inProgress}</Text>
-          <Text style={styles.statLabel}>In Progress</Text>
+          <Text style={styles.statLabel}>{t('inProgress')}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={[styles.statNumber, { color: theme.colors.success }]}>{stats.resolved}</Text>
-          <Text style={styles.statLabel}>Resolved</Text>
+          <Text style={styles.statLabel}>{t('resolved')}</Text>
         </View>
       </View>
 
@@ -204,7 +225,7 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
           onPress={() => setTipsModalVisible(true)}
         >
           <Text style={styles.manageTipsIcon}>💡</Text>
-          <Text style={styles.manageTipsText}>Manage Tips</Text>
+          <Text style={styles.manageTipsText}>{t('manageTips')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -216,7 +237,7 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
             onPress={() => handleTabChange('all')}
           >
             <Text style={[styles.tabText, selectedTab === 'all' && styles.tabTextActive]}>
-              All ({reports.length})
+              {t('all')} ({reports.length})
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -224,7 +245,7 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
             onPress={() => handleTabChange('pending')}
           >
             <Text style={[styles.tabText, selectedTab === 'pending' && styles.tabTextActive]}>
-              Pending ({stats.pending})
+              {t('pending')} ({stats.pending})
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -232,7 +253,7 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
             onPress={() => handleTabChange('in_progress')}
           >
             <Text style={[styles.tabText, selectedTab === 'in_progress' && styles.tabTextActive]}>
-              In Progress ({stats.inProgress})
+              {t('inProgress')} ({stats.inProgress})
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -240,7 +261,7 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
             onPress={() => handleTabChange('resolved')}
           >
             <Text style={[styles.tabText, selectedTab === 'resolved' && styles.tabTextActive]}>
-              Resolved ({stats.resolved})
+              {t('resolved')} ({stats.resolved})
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -256,7 +277,7 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
         {filteredReports.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>📭</Text>
-            <Text style={styles.emptyText}>No reports found</Text>
+            <Text style={styles.emptyText}>{t('noReportsFound')}</Text>
           </View>
         ) : (
           filteredReports.map((report) => (
@@ -268,12 +289,12 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
               <View style={styles.reportHeader}>
                 <View style={styles.reportCategory}>
                   <Text style={styles.reportCategoryText}>
-                    {report.category.replace('_', ' ').toUpperCase()}
+                    {t(getCategoryTranslationKey(report.category))}
                   </Text>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(report.status) + '20' }]}>
                   <Text style={[styles.statusText, { color: getStatusColor(report.status) }]}>
-                    {report.status.toUpperCase()}
+                    {t(getStatusTranslationKey(report.status))}
                   </Text>
                 </View>
               </View>
@@ -290,14 +311,14 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
                 </View>
                 <View style={[styles.priorityBadge, { borderColor: getPriorityColor(report.priority) }]}>
                   <Text style={[styles.priorityText, { color: getPriorityColor(report.priority) }]}>
-                    {report.priority}
+                    {t(getPriorityTranslationKey(report.priority))}
                   </Text>
                 </View>
               </View>
 
               {report.photos && report.photos.length > 0 && (
                 <View style={styles.photoIndicator}>
-                  <Text style={styles.photoIndicatorText}>📷 {report.photos.length} photo{report.photos.length > 1 ? 's' : ''}</Text>
+                  <Text style={styles.photoIndicatorText}>📷 {report.photos.length} {report.photos.length === 1 ? t('photo') : t('photos')}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -309,6 +330,19 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
       <TipsManagement
         visible={tipsModalVisible}
         onClose={() => setTipsModalVisible(false)}
+      />
+
+      {/* Profile Edit Modal */}
+      <ProfileEditModal
+        visible={profileModalVisible}
+        onClose={() => setProfileModalVisible(false)}
+        onUpdate={() => fetchReports(true)}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        visible={settingsModalVisible}
+        onClose={() => setSettingsModalVisible(false)}
       />
 
       {/* Report Detail Modal */}
@@ -324,24 +358,24 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
               {selectedReport && (
                 <>
                   <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>Report Details</Text>
+                    <Text style={styles.modalTitle}>{t('reportDetails')}</Text>
                     <TouchableOpacity onPress={() => setModalVisible(false)}>
                       <Text style={styles.modalClose}>✕</Text>
                     </TouchableOpacity>
                   </View>
 
                   <View style={styles.modalSection}>
-                    <Text style={styles.modalLabel}>Category</Text>
-                    <Text style={styles.modalValue}>{selectedReport.category.replace('_', ' ').toUpperCase()}</Text>
+                    <Text style={styles.modalLabel}>{t('category')}</Text>
+                    <Text style={styles.modalValue}>{t(getCategoryTranslationKey(selectedReport.category))}</Text>
                   </View>
 
                   <View style={styles.modalSection}>
-                    <Text style={styles.modalLabel}>Description</Text>
+                    <Text style={styles.modalLabel}>{t('description')}</Text>
                     <Text style={styles.modalValue}>{selectedReport.description}</Text>
                   </View>
 
                   <View style={styles.modalSection}>
-                    <Text style={styles.modalLabel}>Location</Text>
+                    <Text style={styles.modalLabel}>{t('location')}</Text>
                     <Text style={styles.modalValue}>{selectedReport.location.address}</Text>
                     <Text style={styles.modalSubValue}>
                       {selectedReport.location.latitude.toFixed(6)}, {selectedReport.location.longitude.toFixed(6)}
@@ -349,22 +383,22 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
                   </View>
 
                   <View style={styles.modalSection}>
-                    <Text style={styles.modalLabel}>Reported By</Text>
+                    <Text style={styles.modalLabel}>{t('reportedBy')}</Text>
                     <Text style={styles.modalValue}>{selectedReport.userName}</Text>
                     <Text style={styles.modalSubValue}>{selectedReport.userEmail}</Text>
                   </View>
 
                   <View style={styles.modalSection}>
-                    <Text style={styles.modalLabel}>Priority & Status</Text>
+                    <Text style={styles.modalLabel}>{t('priorityAndStatus')}</Text>
                     <View style={styles.modalRow}>
                       <View style={[styles.priorityBadge, { borderColor: getPriorityColor(selectedReport.priority) }]}>
                         <Text style={[styles.priorityText, { color: getPriorityColor(selectedReport.priority) }]}>
-                          {selectedReport.priority}
+                          {t(getPriorityTranslationKey(selectedReport.priority))}
                         </Text>
                       </View>
                       <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedReport.status) + '20' }]}>
                         <Text style={[styles.statusText, { color: getStatusColor(selectedReport.status) }]}>
-                          {selectedReport.status.toUpperCase()}
+                          {t(getStatusTranslationKey(selectedReport.status))}
                         </Text>
                       </View>
                     </View>
@@ -372,7 +406,7 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
 
                   {selectedReport.photos && selectedReport.photos.length > 0 && (
                     <View style={styles.modalSection}>
-                      <Text style={styles.modalLabel}>Photos ({selectedReport.photos.length})</Text>
+                      <Text style={styles.modalLabel}>{t('photos')} ({selectedReport.photos.length})</Text>
                       <ScrollView horizontal style={styles.photoGallery}>
                         {selectedReport.photos.map((photoUrl, index) => (
                           <Image
@@ -387,10 +421,10 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
                   )}
 
                   <View style={styles.modalSection}>
-                    <Text style={styles.modalLabel}>Admin Notes</Text>
+                    <Text style={styles.modalLabel}>{t('adminNotes')}</Text>
                     <TextInput
                       style={styles.textInput}
-                      placeholder="Add notes about this report..."
+                      placeholder={t('addNotesAboutReport')}
                       value={adminNotes}
                       onChangeText={setAdminNotes}
                       multiline
@@ -399,14 +433,14 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
                   </View>
 
                   <View style={styles.modalSection}>
-                    <Text style={styles.modalLabel}>Update Status</Text>
+                    <Text style={styles.modalLabel}>{t('updateStatus')}</Text>
                     <View style={styles.actionButtons}>
                       {selectedReport.status !== 'in_progress' && (
                         <TouchableOpacity
                           style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
                           onPress={() => handleStatusUpdate('in_progress')}
                         >
-                          <Text style={styles.actionButtonText}>Mark In Progress</Text>
+                          <Text style={styles.actionButtonText}>{t('markInProgress')}</Text>
                         </TouchableOpacity>
                       )}
                       {selectedReport.status !== 'resolved' && (
@@ -414,7 +448,7 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
                           style={[styles.actionButton, { backgroundColor: theme.colors.success }]}
                           onPress={() => handleStatusUpdate('resolved')}
                         >
-                          <Text style={styles.actionButtonText}>✓ Mark as Fixed</Text>
+                          <Text style={styles.actionButtonText}>✓ {t('markAsFixed')}</Text>
                         </TouchableOpacity>
                       )}
                       {selectedReport.status !== 'rejected' && (
@@ -422,7 +456,7 @@ const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({ navigatio
                           style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
                           onPress={() => handleStatusUpdate('rejected')}
                         >
-                          <Text style={styles.actionButtonText}>Reject</Text>
+                          <Text style={styles.actionButtonText}>{t('reject')}</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -460,6 +494,25 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerButtonText: {
+    fontSize: 18,
   },
   greeting: {
     fontSize: 16,
