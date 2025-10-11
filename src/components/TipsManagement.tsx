@@ -9,11 +9,13 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import tipsService, { TipData } from '../services/tipsService';
+import { getCategoryTranslationKey } from '../utils/translationHelpers';
 
 interface TipsManagementProps {
   visible: boolean;
@@ -22,6 +24,7 @@ interface TipsManagementProps {
 
 const TipsManagement: React.FC<TipsManagementProps> = ({ visible, onClose }) => {
   const { state } = useAppContext();
+  const { t } = useLanguage();
   const [tips, setTips] = useState<TipData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -36,11 +39,11 @@ const TipsManagement: React.FC<TipsManagementProps> = ({ visible, onClose }) => 
   const [isPublished, setIsPublished] = useState(true);
 
   const categories: { value: TipData['category']; label: string; icon: string }[] = [
-    { value: 'conservation', label: 'Conservation', icon: '💧' },
-    { value: 'quality', label: 'Quality', icon: '🚰' },
-    { value: 'safety', label: 'Safety', icon: '⚠️' },
-    { value: 'maintenance', label: 'Maintenance', icon: '🔧' },
-    { value: 'general', label: 'General', icon: '💡' },
+    { value: 'conservation', label: t('conservation'), icon: '💧' },
+    { value: 'quality', label: t('quality'), icon: '🚰' },
+    { value: 'safety', label: t('safety'), icon: '⚠️' },
+    { value: 'maintenance', label: t('maintenance'), icon: '🔧' },
+    { value: 'general', label: t('general'), icon: '💡' },
   ];
 
   useEffect(() => {
@@ -168,7 +171,7 @@ const TipsManagement: React.FC<TipsManagementProps> = ({ visible, onClose }) => 
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Manage Tips</Text>
+          <Text style={styles.headerTitle}>{t('manageTips')}</Text>
           <TouchableOpacity onPress={onClose}>
             <Text style={styles.closeButton}>✕</Text>
           </TouchableOpacity>
@@ -183,7 +186,7 @@ const TipsManagement: React.FC<TipsManagementProps> = ({ visible, onClose }) => 
                 setShowForm(true);
               }}
             >
-              <Text style={styles.addButtonText}>+ Add New Tip</Text>
+              <Text style={styles.addButtonText}>+ {t('addNewTip')}</Text>
             </TouchableOpacity>
 
             {loading ? (
@@ -194,8 +197,8 @@ const TipsManagement: React.FC<TipsManagementProps> = ({ visible, onClose }) => 
               <ScrollView style={styles.tipsList}>
                 {tips.length === 0 ? (
                   <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>No tips yet</Text>
-                    <Text style={styles.emptySubtext}>Create your first tip to get started</Text>
+                    <Text style={styles.emptyText}>{t('noTipsYet')}</Text>
+                    <Text style={styles.emptySubtext}>{t('createFirstTip')}</Text>
                   </View>
                 ) : (
                   tips.map((tip) => (
@@ -204,10 +207,10 @@ const TipsManagement: React.FC<TipsManagementProps> = ({ visible, onClose }) => 
                         <Text style={styles.tipIcon}>{tip.icon}</Text>
                         <View style={styles.tipHeaderInfo}>
                           <Text style={styles.tipTitle}>{tip.title}</Text>
-                          <Text style={styles.tipCategory}>{tip.category.toUpperCase()}</Text>
+                          <Text style={styles.tipCategory}>{t(getCategoryTranslationKey(tip.category))}</Text>
                         </View>
                         <View style={[styles.statusBadge, { backgroundColor: tip.isPublished ? theme.colors.success : theme.colors.textSecondary }]}>
-                          <Text style={styles.statusText}>{tip.isPublished ? 'Published' : 'Draft'}</Text>
+                          <Text style={styles.statusText}>{tip.isPublished ? t('published') : t('draft')}</Text>
                         </View>
                       </View>
                       <Text style={styles.tipDescription} numberOfLines={2}>{tip.description}</Text>
@@ -216,19 +219,19 @@ const TipsManagement: React.FC<TipsManagementProps> = ({ visible, onClose }) => 
                           style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
                           onPress={() => handleEdit(tip)}
                         >
-                          <Text style={styles.actionButtonText}>Edit</Text>
+                          <Text style={styles.actionButtonText}>{t('edit')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.actionButton, { backgroundColor: tip.isPublished ? theme.colors.warning : theme.colors.success }]}
                           onPress={() => handleTogglePublished(tip)}
                         >
-                          <Text style={styles.actionButtonText}>{tip.isPublished ? 'Unpublish' : 'Publish'}</Text>
+                          <Text style={styles.actionButtonText}>{tip.isPublished ? t('unpublish') : t('publish')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
                           onPress={() => handleDelete(tip)}
                         >
-                          <Text style={styles.actionButtonText}>Delete</Text>
+                          <Text style={styles.actionButtonText}>{t('delete')}</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -239,27 +242,27 @@ const TipsManagement: React.FC<TipsManagementProps> = ({ visible, onClose }) => 
           </>
         ) : (
           <ScrollView style={styles.form}>
-            <Text style={styles.formTitle}>{editingTip ? 'Edit Tip' : 'Create New Tip'}</Text>
+            <Text style={styles.formTitle}>{editingTip ? t('editTip') : t('createNewTip')}</Text>
 
-            <Text style={styles.label}>Title *</Text>
+            <Text style={styles.label}>{t('title')} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter tip title"
+              placeholder={t('enterTipTitle')}
               value={title}
               onChangeText={setTitle}
             />
 
-            <Text style={styles.label}>Short Description *</Text>
+            <Text style={styles.label}>{t('shortDescription')} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Brief description"
+              placeholder={t('briefDescription')}
               value={description}
               onChangeText={setDescription}
               multiline
               numberOfLines={2}
             />
 
-            <Text style={styles.label}>Category *</Text>
+            <Text style={styles.label}>{t('category')} *</Text>
             <View style={styles.categoryGrid}>
               {categories.map((cat) => (
                 <TouchableOpacity
@@ -278,10 +281,10 @@ const TipsManagement: React.FC<TipsManagementProps> = ({ visible, onClose }) => 
               ))}
             </View>
 
-            <Text style={styles.label}>Full Content *</Text>
+            <Text style={styles.label}>{t('fullContent')} *</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
-              placeholder="Enter detailed tip content..."
+              placeholder={t('enterDetailedTipContent')}
               value={content}
               onChangeText={setContent}
               multiline
@@ -290,7 +293,7 @@ const TipsManagement: React.FC<TipsManagementProps> = ({ visible, onClose }) => 
             />
 
             <View style={styles.publishToggle}>
-              <Text style={styles.label}>Publish immediately</Text>
+              <Text style={styles.label}>{t('publishImmediately')}</Text>
               <TouchableOpacity
                 style={[styles.toggle, isPublished && styles.toggleActive]}
                 onPress={() => setIsPublished(!isPublished)}
@@ -307,13 +310,13 @@ const TipsManagement: React.FC<TipsManagementProps> = ({ visible, onClose }) => 
                   setShowForm(false);
                 }}
               >
-                <Text style={styles.formButtonText}>Cancel</Text>
+                <Text style={styles.formButtonText}>{t('cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.formButton, { backgroundColor: theme.colors.primary }]}
                 onPress={handleSubmit}
               >
-                <Text style={styles.formButtonText}>{editingTip ? 'Update' : 'Create'} Tip</Text>
+                <Text style={styles.formButtonText}>{editingTip ? t('update') : t('create')} {t('tip')}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
